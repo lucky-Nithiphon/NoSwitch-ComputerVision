@@ -76,12 +76,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 interface Task { id: string; text: string; done: boolean; createdAt: number }
 type Filter = 'all' | 'active' | 'done'
 
-const tasks = useLocalStorage<Task[]>('noswitch:tasks', [])
+const DEFAULT_TASKS: Task[] = [
+  { id: 'task-1', text: '📖 อ่านสรุปบทที่ 1 (25 นาที)', done: false, createdAt: Date.now() - 3600000 },
+  { id: 'task-2', text: '✍️ ทำแบบฝึกหัดท้ายบท 5 ข้อ', done: false, createdAt: Date.now() - 1800000 },
+  { id: 'task-3', text: '☕ เตรียมน้ำและจัดโต๊ะอ่านหนังสือ', done: true, createdAt: Date.now() - 7200000 },
+]
+
+const tasks = useLocalStorage<Task[]>('noswitch:tasks', DEFAULT_TASKS)
+
+onMounted(() => {
+  if (!tasks.value || tasks.value.length === 0) {
+    tasks.value = [...DEFAULT_TASKS]
+  }
+})
 const newTask = ref('')
 const filter = ref<Filter>('all')
 const filters: { key: Filter; label: string }[] = [

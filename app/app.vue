@@ -27,35 +27,114 @@
       :class="(isZenHResizing || isZenYtResizing) ? 'cursor-ns-resize' : isZenResizing ? 'cursor-col-resize' : resizeMode === 'width' ? 'cursor-ew-resize' : resizeMode === 'height' ? 'cursor-ns-resize' : 'cursor-se-resize'"
     />
 
-    <!-- Top Navigation Bar & Workspace Presets -->
-    <header class="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] bg-ink-900/90 px-4 py-2.5 backdrop-blur-xl">
-      <!-- Left: Logo & Title -->
-      <div class="flex items-center gap-3">
-        <div class="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-accent to-accent-2 text-sm font-bold text-ink-950 shadow-md shadow-accent/25">
-          N
+    <!-- Floating Island Capsule Navbar -->
+    <header class="sticky top-2 z-30 mx-3 sm:mx-6 my-2 rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-ink-900/85 px-4 py-2 sm:py-2.5 shadow-2xl backdrop-blur-2xl transition-all duration-300">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <!-- Left: Logo & Title -->
+        <div class="flex items-center gap-3">
+          <div class="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-accent to-accent-2 text-sm font-bold text-ink-950 shadow-md shadow-accent/25">
+            N
+          </div>
+          <div>
+            <h1 class="text-sm font-bold leading-tight text-white tracking-wide">NoSwitch v.0.1.2</h1>
+            <p class="text-[11px] text-ink-500">Study Dashboard</p>
+          </div>
         </div>
-        <div>
-          <h1 class="text-sm font-bold leading-tight text-white tracking-wide">NoSwitch v.0.1.2</h1>
-          <p class="text-[11px] text-ink-500">Study Dashboard</p>
-        </div>
-      </div>
 
-      <!-- Center: Layout Mode Presets -->
-      <div class="flex items-center gap-1 rounded-xl border border-white/[0.06] bg-ink-800/80 p-1 shadow-inner">
-        <button
-          v-for="p in presets"
-          :key="p.id"
-          class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-150 cursor-pointer"
-          :class="currentPreset === p.id && !isZenMode
-            ? 'bg-accent/20 text-white border border-accent/40 shadow-sm'
-            : 'text-ink-400 hover:text-white hover:bg-white/[0.05] border border-transparent'"
-          :title="p.desc"
-          @click="applyPreset(p.id)"
-        >
-          <span>{{ p.icon }}</span>
-          <span>{{ p.label }}</span>
-        </button>
-      </div>
+        <!-- Center: Layout Mode Presets & My Workspaces -->
+        <div class="flex items-center gap-1 rounded-xl border border-white/[0.06] bg-ink-800/80 p-1 shadow-inner">
+          <button
+            v-for="p in presets"
+            :key="p.id"
+            class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-150 cursor-pointer"
+            :class="currentPreset === p.id && !isZenMode
+              ? 'bg-accent/20 text-white border border-accent/40 shadow-sm'
+              : 'text-ink-400 hover:text-white hover:bg-white/[0.05] border border-transparent'"
+            :title="p.desc"
+            @click="applyPreset(p.id)"
+          >
+            <span>{{ p.icon }}</span>
+            <span>{{ p.label }}</span>
+          </button>
+
+          <!-- Divider -->
+          <div class="h-4 w-[1px] bg-white/10 mx-0.5" />
+
+          <!-- My Workspaces Dropdown Button -->
+          <div class="relative" ref="workspaceMenuRef">
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-150 cursor-pointer"
+              :class="isCustomWorkspaceActive
+                ? 'bg-accent/25 text-white border border-accent/50 shadow-sm'
+                : 'text-ink-300 hover:text-white hover:bg-white/[0.05] border border-transparent'"
+              title="โต๊ะอ่านหนังสือส่วนตัวที่บันทึกไว้"
+              @click="isWorkspaceMenuOpen = !isWorkspaceMenuOpen"
+            >
+              <span>🗂️</span>
+              <span class="font-medium">
+                {{ activeCustomWorkspace ? activeCustomWorkspace.name : 'โต๊ะของฉัน' }}
+              </span>
+              <span v-if="customWorkspaces.length" class="text-[10px] text-accent font-bold">({{ customWorkspaces.length }})</span>
+              <span class="text-[10px]">▾</span>
+            </button>
+
+            <!-- Workspaces Dropdown Menu -->
+            <div
+              v-if="isWorkspaceMenuOpen"
+              class="absolute left-0 sm:right-0 sm:left-auto top-full mt-2 w-64 rounded-2xl border border-white/[0.1] bg-ink-900/95 p-2 shadow-2xl backdrop-blur-xl z-50 text-xs animate-fade-down"
+            >
+              <div class="flex items-center justify-between px-2 py-1 text-[10px] font-bold text-ink-500 uppercase tracking-wider">
+                <span>โต๊ะอ่านหนังสือส่วนตัว</span>
+                <span class="text-accent">{{ customWorkspaces.length }} โต๊ะ</span>
+              </div>
+
+              <!-- List of Saved Custom Workspaces -->
+              <div v-if="customWorkspaces.length" class="space-y-1 my-1 max-h-48 overflow-y-auto scroll-thin">
+                <div
+                  v-for="ws in customWorkspaces"
+                  :key="ws.id"
+                  class="group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-left transition cursor-pointer"
+                  :class="currentPreset === ws.id && !isZenMode
+                    ? 'bg-accent/20 border border-accent/40 text-white font-medium'
+                    : 'text-ink-300 hover:bg-white/[0.06] hover:text-white'"
+                  @click="applyCustomWorkspace(ws)"
+                >
+                  <span class="flex items-center gap-2 truncate">
+                    <span>{{ ws.icon || '📚' }}</span>
+                    <span class="truncate">{{ ws.name }}</span>
+                  </span>
+                  <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      class="p-1 hover:text-rose-400 rounded transition cursor-pointer text-[11px]"
+                      title="ลบโต๊ะนี้"
+                      @click="deleteCustomWorkspace(ws.id, $event)"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="px-2 py-3 text-center text-ink-500 text-[11px]">
+                ยังไม่มีโต๊ะที่บันทึกไว้<br />จัดวางการ์ดแล้วกดบันทึกด้านล่างได้เลย
+              </div>
+
+              <!-- Save Current Workspace Button -->
+              <div class="pt-1.5 border-t border-white/[0.08] mt-1">
+                <button
+                  type="button"
+                  class="w-full btn btn-primary text-xs py-1.5 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                  @click="openSaveWorkspaceModal"
+                >
+                  <span>💾</span>
+                  <span>บันทึกเลย์เอาต์ปัจจุบันเป็นโต๊ะใหม่</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
 
       <!-- Right: Zen Mode, Clock & Actions -->
       <div class="flex items-center gap-2">
@@ -136,10 +215,22 @@
           <span class="hidden sm:inline font-semibold">Themes</span>
         </button>
 
+        <!-- Help / Onboarding Tour Button -->
+        <button
+          id="btn-tour-help"
+          class="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] px-2.5 py-1.5 text-xs font-medium text-ink-300 transition hover:border-accent/40 hover:bg-white/[0.08] hover:text-white cursor-pointer active:scale-95"
+          title="คู่มือแนะนำการใช้งาน (Onboarding Tour)"
+          @click="openTour"
+        >
+          <span class="grid h-4 w-4 place-items-center rounded-full bg-accent/20 text-[10px] font-bold text-accent">?</span>
+          <span class="hidden sm:inline font-semibold">Help</span>
+        </button>
+
         <!-- Live Clock -->
         <div class="hidden xl:flex items-baseline gap-2 pl-2 text-xs border-l border-white/[0.08]">
           <span class="font-mono font-bold tabular-nums text-white">{{ clock }}</span>
         </div>
+      </div>
       </div>
     </header>
 
@@ -173,8 +264,18 @@
       <!-- Zen Two-Column Workspace (ฝั่งซ้าย: เอกสาร / ตรงกลาง: Splitter Bar / ฝั่งขวา: Pomodoro + YouTube) -->
       <div class="flex flex-1 min-h-0 flex-col lg:flex-row p-3 lg:p-5 overflow-hidden gap-0">
         <!-- ฝั่งซ้าย: Document Reader -->
-        <div class="flex flex-1 min-w-[300px] flex-col rounded-2xl border border-white/[0.08] bg-ink-900/80 backdrop-blur-xl shadow-2xl overflow-hidden">
-          <div class="flex h-10 items-center justify-between border-b border-white/[0.06] bg-ink-800/80 px-4 shrink-0">
+        <div
+          class="flex flex-1 min-w-[300px] flex-col rounded-2xl border border-white/[0.08] backdrop-blur-xl shadow-2xl overflow-hidden"
+          :style="{
+            backgroundColor: `rgba(15, 23, 42, ${(theme.cardOpacity ?? 85) / 100})`
+          }"
+        >
+          <div
+            class="flex h-10 items-center justify-between border-b border-white/[0.06] px-4 shrink-0"
+            :style="{
+              backgroundColor: `rgba(30, 41, 59, ${Math.min(0.95, ((theme.cardOpacity ?? 85) / 100) * 0.9)})`
+            }"
+          >
             <span class="font-semibold text-xs text-white/95 flex items-center gap-2">
               <span>📄</span>
               <span>Document & PDF Focus Reader</span>
@@ -207,14 +308,20 @@
         >
           <!-- Pomodoro Timer Card -->
           <div
-            class="flex flex-col rounded-2xl border border-white/[0.08] bg-ink-900/80 backdrop-blur-xl shadow-xl overflow-hidden shrink-0 transition-[flex] duration-75"
+            class="flex flex-col rounded-2xl border border-white/[0.08] backdrop-blur-xl shadow-xl overflow-hidden shrink-0 transition-[flex] duration-75"
             :style="{
               flex: zenYoutubeCustomHeight ? 'none' : `${zenTimerFlex} 1 0%`,
               height: zenYoutubeCustomHeight ? '260px' : undefined,
-              minHeight: '200px'
+              minHeight: '200px',
+              backgroundColor: `rgba(15, 23, 42, ${(theme.cardOpacity ?? 85) / 100})`
             }"
           >
-            <div class="flex h-10 items-center justify-between border-b border-white/[0.06] bg-ink-800/80 px-4 shrink-0">
+            <div
+              class="flex h-10 items-center justify-between border-b border-white/[0.06] px-4 shrink-0"
+              :style="{
+                backgroundColor: `rgba(30, 41, 59, ${Math.min(0.95, ((theme.cardOpacity ?? 85) / 100) * 0.9)})`
+              }"
+            >
               <span class="font-semibold text-xs text-white/95 flex items-center gap-2">
                 <span>⏱️</span>
                 <span>Pomodoro Focus Timer</span>
@@ -242,14 +349,20 @@
           <!-- YouTube Audio / Video Player Card -->
           <div
             id="zen-yt-card"
-            class="relative flex flex-col rounded-2xl border border-white/[0.08] bg-ink-900/80 backdrop-blur-xl shadow-xl overflow-hidden shrink-0 transition-[flex] duration-75"
+            class="relative flex flex-col rounded-2xl border border-white/[0.08] backdrop-blur-xl shadow-xl overflow-hidden shrink-0 transition-[flex] duration-75"
             :style="{
               flex: zenYoutubeCustomHeight ? 'none' : `${zenYoutubeFlex} 1 0%`,
               height: zenYoutubeCustomHeight ? `${zenYoutubeCustomHeight}px` : undefined,
-              minHeight: '260px'
+              minHeight: '260px',
+              backgroundColor: `rgba(15, 23, 42, ${(theme.cardOpacity ?? 85) / 100})`
             }"
           >
-            <div class="flex h-10 items-center justify-between border-b border-white/[0.06] bg-ink-800/80 px-4 shrink-0">
+            <div
+              class="flex h-10 items-center justify-between border-b border-white/[0.06] px-4 shrink-0"
+              :style="{
+                backgroundColor: `rgba(30, 41, 59, ${Math.min(0.95, ((theme.cardOpacity ?? 85) / 100) * 0.9)})`
+              }"
+            >
               <span class="font-semibold text-xs text-white/95 flex items-center gap-2">
                 <span>📺</span>
                 <span>Study Video / Audio</span>
@@ -291,9 +404,9 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 items-stretch">
         <div
           v-for="w in widgets"
-          v-show="w.visible"
+          v-show="w.visible && !dockedWidgetIds.includes(w.id)"
           :key="w.id"
-          class="modular-card relative flex flex-col rounded-2xl border border-white/[0.08] bg-ink-900/80 backdrop-blur-xl shadow-xl transition-all duration-200 overflow-hidden"
+          class="modular-card group/card relative flex flex-col rounded-2xl border border-white/[0.08] backdrop-blur-xl shadow-xl transition-all duration-200 overflow-hidden"
           :class="[
             getColSpanClass(w.colSpan),
             draggedId === w.id ? 'opacity-40 ring-2 ring-accent scale-[0.99]' : '',
@@ -302,10 +415,9 @@
           :style="{
             order: w.order,
             minHeight: w.minimized ? '42px' : `${w.height}px`,
-            height: w.minimized ? '42px' : `${w.height}px`
+            height: w.minimized ? '42px' : `${w.height}px`,
+            backgroundColor: `rgba(15, 23, 42, ${(theme.cardOpacity ?? 85) / 100})`
           }"
-          :draggable="true"
-          @dragstart="onDragStart(w.id, $event)"
           @dragover.prevent="onDragOver(w.id)"
           @dragleave="onDragLeave(w.id)"
           @drop.prevent="onDrop(w.id)"
@@ -322,20 +434,42 @@
             </div>
           </div>
 
-          <!-- Modular Card Header -->
+          <!-- Modular Card Header: ลากได้เฉพาะแถบหัวการ์ดตรงนี้เท่านั้น (ตรงกลางการ์ดคลิกได้อิสระ ไม่หลุดไปลาก) -->
           <div
-            class="flex h-[42px] items-center justify-between border-b border-white/[0.06] bg-ink-800/80 px-3.5 select-none shrink-0 cursor-grab active:cursor-grabbing"
-            :title="`คลิกลากเพื่อสลับตำแหน่ง ${w.title}`"
+            class="group/header flex h-[42px] items-center justify-between border-b border-white/[0.06] px-3.5 select-none shrink-0 cursor-grab active:cursor-grabbing hover:bg-white/[0.04] transition"
+            :draggable="true"
+            :title="`คลิกค้างตรงหัวการ์ดนี้เพื่อลากสลับตำแหน่ง ${w.title}`"
+            :style="{
+              backgroundColor: `rgba(30, 41, 59, ${Math.min(0.95, ((theme.cardOpacity ?? 85) / 100) * 0.9)})`
+            }"
+            @dragstart="onDragStart(w.id, $event)"
           >
-            <!-- Title & Drag Icon -->
-            <div class="flex items-center gap-2 font-semibold text-white/95 text-xs truncate">
-              <span class="text-ink-500 text-[11px] tracking-tighter">⋮⋮</span>
+            <!-- Title & Drag Icon & Live Activity Dot -->
+            <div class="flex items-center gap-2 font-semibold text-white/95 text-xs truncate pointer-events-none">
+              <span class="text-ink-500 group-hover/header:text-accent transition-colors text-sm font-bold tracking-tighter">⋮⋮</span>
               <span>{{ w.icon }}</span>
               <span class="truncate">{{ w.title }}</span>
+              <!-- Subtle Live Status Indicator Dot -->
+              <span
+                class="h-1.5 w-1.5 rounded-full transition-all duration-300"
+                :class="[
+                  w.id === 'youtube' ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)]' :
+                  w.id === 'timer' ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] animate-pulse' :
+                  w.id === 'todo' ? 'bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.8)]' :
+                  'bg-white/20 group-hover/card:bg-accent group-hover/card:shadow-[0_0_6px_var(--color-accent)]'
+                ]"
+                :title="`${w.title} active`"
+              />
             </div>
 
-            <!-- Card Controls -->
-            <div class="flex items-center gap-1.5 shrink-0" @mousedown.stop @click.stop>
+            <!-- Card Controls: Progressive Disclosure (ซ่อนปุ่มปรับแต่งให้คลีน สบายตา จะแสดงขึ้นมาอย่างนุ่มนวลเมื่อเอาเมาส์มาวางบนการ์ด) -->
+            <div
+              class="card-controls flex items-center gap-1.5 shrink-0 opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200"
+              :draggable="false"
+              @mousedown.stop
+              @touchstart.stop
+              @click.stop
+            >
               <!-- Quick Reorder Stepper Buttons (◀ / ▶ สำหรับ iPad, Tablet หรือกดสลับไวๆ) -->
               <div class="flex items-center rounded-lg border border-white/[0.06] bg-ink-900/70 p-0.5 text-[10px] text-ink-400">
                 <button
@@ -386,6 +520,16 @@
                 @click="toggleMinimize(w.id)"
               >
                 {{ w.minimized ? '□' : '—' }}
+              </button>
+
+              <!-- Pin to Dock Button (พับเป็นการ์ดไอคอนลอยข้างจอ ไม่เกะกะโต๊ะหลัก) -->
+              <button
+                type="button"
+                class="rounded-lg p-1 text-ink-400 hover:bg-white/[0.08] hover:text-accent transition cursor-pointer text-xs"
+                :title="`พับ ${w.title} เป็นไอคอนลอยข้างจอ (Dock)`"
+                @click="pinToDock(w.id)"
+              >
+                📌
               </button>
 
               <!-- Close / Hide Button -->
@@ -512,6 +656,169 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Save Custom Workspace Modal -->
+    <Teleport to="body">
+      <div
+        v-if="isSaveModalOpen"
+        class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in"
+        @click.self="isSaveModalOpen = false"
+      >
+        <div class="w-full max-w-sm rounded-3xl border border-white/[0.1] bg-ink-950 p-5 shadow-2xl text-xs space-y-4 animate-scale-up">
+          <div class="flex items-center justify-between border-b border-white/[0.08] pb-3">
+            <h3 class="font-bold text-sm text-white flex items-center gap-2">
+              <span>💾</span> บันทึกโต๊ะอ่านหนังสือส่วนตัว
+            </h3>
+            <button
+              type="button"
+              class="p-1 text-ink-400 hover:text-white cursor-pointer rounded-lg hover:bg-white/[0.08]"
+              @click="isSaveModalOpen = false"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-ink-400 text-[11px] mb-1 font-medium">ชื่อโต๊ะอ่านหนังสือของคุณ:</label>
+              <input
+                v-model="newWorkspaceName"
+                type="text"
+                placeholder="เช่น ติวสอบแคลคูลัส, ชีวะบทที่ 1, ชิลล์ Lo-fi"
+                class="input w-full text-xs py-2 px-3"
+                autofocus
+                @keyup.enter="saveCurrentWorkspace"
+              />
+            </div>
+
+            <div>
+              <label class="block text-ink-400 text-[11px] mb-1.5 font-medium">เลือกไอคอนประจำโต๊ะ:</label>
+              <div class="grid grid-cols-5 gap-1.5">
+                <button
+                  v-for="icon in workspaceIcons"
+                  :key="icon"
+                  type="button"
+                  class="h-9 rounded-xl border text-base flex items-center justify-center transition cursor-pointer"
+                  :class="newWorkspaceIcon === icon
+                    ? 'border-accent bg-accent/20 text-white ring-1 ring-accent'
+                    : 'border-white/[0.08] bg-ink-800/50 hover:bg-white/[0.06] text-ink-300'"
+                  @click="newWorkspaceIcon = icon"
+                >
+                  {{ icon }}
+                </button>
+              </div>
+            </div>
+
+            <p class="text-[10px] text-ink-500 leading-relaxed bg-ink-900/60 p-2.5 rounded-xl border border-white/[0.04]">
+              💡 <strong>ระบบจะจำ:</strong> ตำแหน่ง, ขนาดกว้าง/สูง, และวิดเจ็ตที่เปิดอยู่ตอนนี้ทั้งหมด คุณสามารถคลิกสลับกลับมาใช้โต๊ะนี้ได้ใน 1 วินาที
+            </p>
+          </div>
+
+          <div class="flex gap-2 pt-1">
+            <button
+              type="button"
+              class="btn-ghost flex-1 py-2 text-xs rounded-xl cursor-pointer"
+              @click="isSaveModalOpen = false"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary flex-1 py-2 text-xs rounded-xl cursor-pointer"
+              @click="saveCurrentWorkspace"
+            >
+              บันทึกโต๊ะนี้
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Floating Mini-Pill Dock (ไอคอนลอยขอบขวาของจอสำหรับวิดเจ็ตที่ปักหมุดไว้) -->
+    <Teleport to="body">
+      <div
+        v-if="dockedWidgets.length"
+        class="fixed right-3 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-1.5 rounded-2xl border border-white/[0.1] bg-ink-950/85 p-1.5 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5 animate-fade-left"
+      >
+        <div class="px-1 py-0.5 text-[8px] font-bold text-ink-500 uppercase tracking-tighter text-center">
+          Dock
+        </div>
+        <div
+          v-for="dw in dockedWidgets"
+          :key="dw.id"
+          class="relative group/pill"
+        >
+          <button
+            type="button"
+            class="relative grid h-9 w-9 place-items-center rounded-xl border text-sm transition-all duration-150 cursor-pointer"
+            :class="activeFlyoutWidgetId === dw.id
+              ? 'border-accent bg-accent/25 text-white shadow-[0_0_12px_var(--color-accent)] ring-1 ring-accent'
+              : 'border-white/[0.08] bg-ink-900/80 text-ink-300 hover:border-white/20 hover:bg-white/[0.08] hover:text-white'"
+            :title="dw.title"
+            @click="toggleDockFlyout(dw.id)"
+          >
+            <span>{{ dw.icon }}</span>
+          </button>
+
+          <!-- Tooltip on hover -->
+          <div class="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-2 hidden group-hover/pill:flex items-center whitespace-nowrap rounded-lg border border-white/[0.1] bg-ink-900/95 px-2.5 py-1 text-[11px] font-medium text-white shadow-xl backdrop-blur-md z-50">
+            {{ dw.title }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Dock Quick Flyout Drawer (เมื่อคลิกที่ไอคอนใน Dock จะสไลด์ออกมาเป็น Quick Drawer ทันที!) -->
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 translate-x-8 scale-95"
+        enter-to-class="opacity-100 translate-x-0 scale-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100 translate-x-0 scale-100"
+        leave-to-class="opacity-0 translate-x-8 scale-95"
+      >
+        <div
+          v-if="activeFlyoutWidget"
+          class="fixed right-16 top-1/2 -translate-y-1/2 z-50 w-[380px] sm:w-[460px] max-h-[85vh] h-[520px] rounded-3xl border border-white/[0.12] bg-ink-950/95 shadow-2xl backdrop-blur-2xl ring-1 ring-accent/30 flex flex-col overflow-hidden"
+        >
+          <!-- Flyout Header -->
+          <div class="flex h-11 items-center justify-between border-b border-white/[0.08] bg-ink-900/70 px-4 shrink-0">
+            <div class="flex items-center gap-2 font-semibold text-xs text-white">
+              <span class="text-sm">{{ activeFlyoutWidget.icon }}</span>
+              <span>{{ activeFlyoutWidget.title }}</span>
+              <span class="rounded-full bg-accent/20 border border-accent/40 px-2 py-0.2 text-[9px] text-accent font-medium">Quick Flyout</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <!-- Unpin to Main Grid Button -->
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-[10px] text-ink-300 hover:border-accent/40 hover:text-white transition cursor-pointer"
+                title="นำวิดเจ็ตนี้กลับไปวางบนหน้าจอหลัก"
+                @click="unpinFromDock(activeFlyoutWidget.id)"
+              >
+                <span>📌 นำกลับสู่โต๊ะหลัก</span>
+              </button>
+              <!-- Close Flyout -->
+              <button
+                type="button"
+                class="rounded-lg p-1 text-ink-400 hover:bg-white/[0.08] hover:text-white transition cursor-pointer"
+                title="พับเก็บเข้า Dock"
+                @click="activeFlyoutWidgetId = null"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <!-- Flyout Body -->
+          <div class="flex-1 min-h-0 overflow-hidden">
+            <component :is="getWidgetComponent(activeFlyoutWidget.id)" class="h-full w-full !border-0 !rounded-none !bg-transparent" />
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Onboarding Tutorial Tour Modal -->
+    <OnboardingTour ref="tourRef" v-model="isTourOpen" />
   </div>
 </template>
 
@@ -530,12 +837,25 @@ import Scratchpad from '~/components/Scratchpad.vue'
 import ThemeCustomizer from '~/components/ThemeCustomizer.vue'
 import FormulaHUD from '~/components/FormulaHUD.vue'
 import ExamCountdown from '~/components/ExamCountdown.vue'
+import OnboardingTour from '~/components/OnboardingTour.vue'
 import { useTheme } from '~/composables/useTheme'
 
 const { theme, activeWallpaper, activeAccent } = useTheme()
 const isThemeDrawerOpen = ref(false)
 
-export interface WidgetState {
+// Onboarding Tour State
+const isTourOpen = ref(false)
+const tourRef = ref<{ open: () => void } | null>(null)
+
+function openTour() {
+  if (tourRef.value?.open) {
+    tourRef.value.open()
+  } else {
+    isTourOpen.value = true
+  }
+}
+
+interface WidgetState {
   id: string
   title: string
   icon: string
@@ -546,7 +866,7 @@ export interface WidgetState {
   height: number
 }
 
-const STORAGE_KEY = 'noswitch:modular:widgets:v7'
+const STORAGE_KEY = 'noswitch:modular:widgets:v8'
 
 const presets = [
   { id: 'standard', label: 'มาตรฐาน', icon: '⚡', desc: 'เลย์เอาต์สมดุล ครบทุกเครื่องมือ ไม่รกสายตา' },
@@ -559,13 +879,13 @@ const currentPreset = ref('standard')
 const PRESET_LAYOUTS: Record<string, WidgetState[]> = {
   standard: [
     { id: 'youtube', title: 'YouTube Focus', icon: '📺', visible: true, minimized: false, order: 0, colSpan: 7, height: 440 },
-    { id: 'guardian', title: 'Focus Guardian', icon: '🛡️', visible: true, minimized: false, order: 1, colSpan: 5, height: 440 },
-    { id: 'exam', title: 'Exam D-Day', icon: '⏳', visible: true, minimized: false, order: 2, colSpan: 4, height: 380 },
-    { id: 'timer', title: 'Pomodoro Timer', icon: '⏱️', visible: true, minimized: false, order: 3, colSpan: 4, height: 380 },
-    { id: 'scratchpad', title: 'Quick Scratchpad', icon: '📝', visible: true, minimized: false, order: 4, colSpan: 4, height: 380 },
-    { id: 'ai', title: 'AI Study Assistant', icon: '🤖', visible: true, minimized: false, order: 5, colSpan: 6, height: 440 },
-    { id: 'hud', title: 'Formula & Cheat Sheet', icon: '📐', visible: true, minimized: false, order: 6, colSpan: 6, height: 440 },
-    { id: 'todo', title: 'Study Schedule', icon: '📅', visible: false, minimized: false, order: 7, colSpan: 4, height: 380 },
+    { id: 'timer', title: 'Pomodoro Timer', icon: '⏱️', visible: true, minimized: false, order: 1, colSpan: 5, height: 440 },
+    { id: 'todo', title: 'Study Schedule', icon: '📅', visible: true, minimized: false, order: 2, colSpan: 5, height: 460 },
+    { id: 'ai', title: 'AI Study Assistant', icon: '🤖', visible: true, minimized: false, order: 3, colSpan: 7, height: 460 },
+    { id: 'guardian', title: 'Focus Guardian', icon: '🛡️', visible: false, minimized: false, order: 4, colSpan: 5, height: 440 },
+    { id: 'exam', title: 'Exam D-Day', icon: '⏳', visible: false, minimized: false, order: 5, colSpan: 4, height: 380 },
+    { id: 'scratchpad', title: 'Quick Scratchpad', icon: '📝', visible: false, minimized: false, order: 6, colSpan: 4, height: 380 },
+    { id: 'hud', title: 'Formula & Cheat Sheet', icon: '📐', visible: false, minimized: false, order: 7, colSpan: 6, height: 440 },
     { id: 'calc', title: 'Calculator', icon: '🧮', visible: false, minimized: false, order: 8, colSpan: 3, height: 380 },
     { id: 'doc', title: 'Document & PDF', icon: '📄', visible: false, minimized: false, order: 9, colSpan: 7, height: 440 },
     { id: 'themes', title: 'Theme Customizer', icon: '🎨', visible: false, minimized: false, order: 10, colSpan: 4, height: 440 },
@@ -603,6 +923,79 @@ const isZenMode = ref(false)
 const isWidgetMenuOpen = ref(false)
 const widgetMenuRef = ref<HTMLElement | null>(null)
 
+// Custom Workspaces (My Workspaces) Logic
+interface CustomWorkspace {
+  id: string
+  name: string
+  icon: string
+  widgets: WidgetState[]
+  createdAt: number
+}
+
+const customWorkspaces = useLocalStorage<CustomWorkspace[]>('noswitch:custom:workspaces:v1', [])
+const isWorkspaceMenuOpen = ref(false)
+const workspaceMenuRef = ref<HTMLElement | null>(null)
+const isSaveModalOpen = ref(false)
+const newWorkspaceName = ref('')
+const newWorkspaceIcon = ref('📚')
+const workspaceIcons = ['📚', '📐', '🔬', '☕', '🎯', '💡', '💻', '🎨', '🎧', '⚡']
+
+const activeCustomWorkspace = computed(() => {
+  return customWorkspaces.value.find(ws => ws.id === currentPreset.value)
+})
+
+const isCustomWorkspaceActive = computed(() => {
+  return !isZenMode.value && !!activeCustomWorkspace.value
+})
+
+function openSaveWorkspaceModal() {
+  newWorkspaceName.value = `โต๊ะส่วนตัว ${customWorkspaces.value.length + 1}`
+  newWorkspaceIcon.value = workspaceIcons[customWorkspaces.value.length % workspaceIcons.length] || '📚'
+  isSaveModalOpen.value = true
+  isWorkspaceMenuOpen.value = false
+}
+
+function saveCurrentWorkspace() {
+  const name = newWorkspaceName.value.trim() || `โต๊ะส่วนตัว ${customWorkspaces.value.length + 1}`
+  const newWs: CustomWorkspace = {
+    id: `custom-ws-${Date.now()}`,
+    name,
+    icon: newWorkspaceIcon.value || '📚',
+    widgets: JSON.parse(JSON.stringify(widgets.value)),
+    createdAt: Date.now()
+  }
+  customWorkspaces.value.push(newWs)
+  currentPreset.value = newWs.id
+  isSaveModalOpen.value = false
+}
+
+function applyCustomWorkspace(ws: CustomWorkspace) {
+  currentPreset.value = ws.id
+  isZenMode.value = false
+  isWorkspaceMenuOpen.value = false
+  const templateMap = new Map(ws.widgets.map((t) => [t.id, t]))
+  
+  widgets.value.forEach((w) => {
+    const t = templateMap.get(w.id)
+    if (t) {
+      w.visible = t.visible
+      w.minimized = t.minimized
+      w.order = t.order
+      w.colSpan = t.colSpan
+      w.height = t.height
+    }
+  })
+  saveToStorage()
+}
+
+function deleteCustomWorkspace(id: string, e?: Event) {
+  e?.stopPropagation()
+  customWorkspaces.value = customWorkspaces.value.filter(ws => ws.id !== id)
+  if (currentPreset.value === id) {
+    applyPreset('standard')
+  }
+}
+
 // แมป Component ตาม id
 const componentMap: Record<string, Component> = {
   doc: DocumentReader,
@@ -622,7 +1015,45 @@ function getWidgetComponent(id: string) {
   return componentMap[id] || YoutubePlayer
 }
 
-const visibleCount = computed(() => widgets.value.filter((w) => w.visible).length)
+// Docked Widgets (Floating Mini-Pill Dock) Logic
+const dockedWidgetIds = useLocalStorage<string[]>('noswitch:docked:widgets:v1', [])
+const activeFlyoutWidgetId = ref<string | null>(null)
+
+const dockedWidgets = computed(() => {
+  return widgets.value.filter(w => dockedWidgetIds.value.includes(w.id))
+})
+
+const activeFlyoutWidget = computed(() => {
+  return widgets.value.find(w => w.id === activeFlyoutWidgetId.value) || null
+})
+
+function pinToDock(id: string) {
+  if (!dockedWidgetIds.value.includes(id)) {
+    dockedWidgetIds.value.push(id)
+  }
+}
+
+function unpinFromDock(id: string) {
+  dockedWidgetIds.value = dockedWidgetIds.value.filter(item => item !== id)
+  const widget = widgets.value.find(w => w.id === id)
+  if (widget) {
+    widget.visible = true
+  }
+  if (activeFlyoutWidgetId.value === id) {
+    activeFlyoutWidgetId.value = null
+  }
+  saveToStorage()
+}
+
+function toggleDockFlyout(id: string) {
+  if (activeFlyoutWidgetId.value === id) {
+    activeFlyoutWidgetId.value = null
+  } else {
+    activeFlyoutWidgetId.value = id
+  }
+}
+
+const visibleCount = computed(() => widgets.value.filter((w) => w.visible && !dockedWidgetIds.value.includes(w.id)).length)
 
 function applyPreset(presetId: string) {
   currentPreset.value = presetId
@@ -685,7 +1116,12 @@ function changeColSpan(id: string, delta: number) {
 function toggleWidget(id: string) {
   const w = widgets.value.find((item) => item.id === id)
   if (w) {
-    w.visible = !w.visible
+    if (dockedWidgetIds.value.includes(id)) {
+      dockedWidgetIds.value = dockedWidgetIds.value.filter(item => item !== id)
+      w.visible = true
+    } else {
+      w.visible = !w.visible
+    }
     saveToStorage()
   }
 }
@@ -694,6 +1130,10 @@ function closeWidget(id: string) {
   const w = widgets.value.find((item) => item.id === id)
   if (w) {
     w.visible = false
+    dockedWidgetIds.value = dockedWidgetIds.value.filter(item => item !== id)
+    if (activeFlyoutWidgetId.value === id) {
+      activeFlyoutWidgetId.value = null
+    }
     saveToStorage()
   }
 }
@@ -717,6 +1157,11 @@ function onDragStart(id: string, event: DragEvent) {
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move'
     event.dataTransfer.setData('text/plain', id)
+    // ใช้ตัวการ์ดทั้งใบเป็น Drag Ghost Image ลอยตามเมาส์
+    const cardEl = (event.currentTarget as HTMLElement)?.closest('.modular-card') as HTMLElement | null
+    if (cardEl) {
+      event.dataTransfer.setDragImage(cardEl, 24, 20)
+    }
   }
 }
 
@@ -952,6 +1397,9 @@ function handleDocumentClick(e: MouseEvent) {
   if (widgetMenuRef.value && !widgetMenuRef.value.contains(e.target as Node)) {
     isWidgetMenuOpen.value = false
   }
+  if (workspaceMenuRef.value && !workspaceMenuRef.value.contains(e.target as Node)) {
+    isWorkspaceMenuOpen.value = false
+  }
 }
 
 // Zen Mode Splitter Drag Logic
@@ -1173,7 +1621,19 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .modular-card {
-  transition: box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  transition: box-shadow 0.25s ease, border-color 0.2s ease, opacity 0.2s ease, transform 0.15s ease;
+}
+
+.modular-card:hover {
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+}
+
+/* Touch devices: Always show controls subtly since hover is not available */
+@media (hover: none) {
+  .modular-card .card-controls {
+    opacity: 0.9 !important;
+  }
 }
 
 :deep(.widget) {

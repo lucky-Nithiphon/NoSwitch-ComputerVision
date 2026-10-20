@@ -54,6 +54,55 @@
       </div>
     </div>
 
+    <!-- AI Persona & Model Selector Bar (สไตล์ติวเตอร์ + สมองโมเดล) -->
+    <div class="flex flex-wrap items-center justify-between gap-2 px-3.5 py-1.5 border-b border-white/[0.04] bg-ink-900/60 text-[11px] shrink-0 select-none">
+      <!-- Persona selector -->
+      <div class="flex items-center gap-1.5">
+        <span class="text-ink-400 text-[10px] font-medium flex items-center gap-1">
+          <span>🎭</span> ติวเตอร์:
+        </span>
+        <div class="flex items-center gap-1 bg-ink-950/70 p-0.5 rounded-lg border border-white/[0.06]">
+          <button
+            v-for="persona in AI_PERSONAS"
+            :key="persona.id"
+            type="button"
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition cursor-pointer"
+            :class="activePersonaId === persona.id
+              ? 'bg-accent/25 text-white border border-accent/40 shadow-sm'
+              : 'text-ink-400 hover:text-white hover:bg-white/[0.04] border border-transparent'"
+            :title="persona.desc"
+            @click="activePersonaId = persona.id"
+          >
+            <span>{{ persona.icon }}</span>
+            <span>{{ persona.name }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Model selector -->
+      <div class="flex items-center gap-1.5">
+        <span class="text-ink-400 text-[10px] font-medium flex items-center gap-1">
+          <span>🧠</span> โมเดล:
+        </span>
+        <div class="flex items-center gap-1 bg-ink-950/70 p-0.5 rounded-lg border border-white/[0.06]">
+          <button
+            v-for="m in AI_MODELS"
+            :key="m.id"
+            type="button"
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition cursor-pointer"
+            :class="selectedModelId === m.id
+              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+              : 'text-ink-400 hover:text-white hover:bg-white/[0.04] border border-transparent'"
+            :title="m.desc"
+            @click="selectedModelId = m.id"
+          >
+            <span>{{ m.icon }}</span>
+            <span>{{ m.name }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- API Key Settings Bar / Dropdown -->
     <Transition
       enter-from-class="opacity-0 -translate-y-2"
@@ -123,7 +172,25 @@
     </Transition>
 
     <!-- Chat Messages Body -->
-    <div class="widget-body flex flex-1 min-h-0 flex-col gap-3 pt-3">
+    <div class="widget-body relative flex flex-1 min-h-0 flex-col gap-3 pt-3">
+      <!-- Floating Toast Feedback for Note Saved -->
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 -translate-y-2 scale-95"
+        enter-to-class="opacity-100 translate-y-0 scale-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100 translate-y-0 scale-100"
+        leave-to-class="opacity-0 -translate-y-2 scale-95"
+      >
+        <div
+          v-if="toastMsg"
+          class="absolute top-2 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-ink-950/95 px-3.5 py-1.5 text-xs font-medium text-emerald-300 shadow-2xl backdrop-blur-xl ring-1 ring-emerald-500/30 whitespace-nowrap animate-fade-up"
+        >
+          <span>📌</span>
+          <span>{{ toastMsg }}</span>
+        </div>
+      </Transition>
+
       <!-- No Key Notice Banner -->
       <div
         v-if="!apiKey"
@@ -174,10 +241,28 @@
               v-for="(s, i) in currentPrompts"
               :id="`chat-prompt-${i}`"
               :key="s"
-              class="cursor-pointer rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-xs text-ink-300 transition hover:border-accent/40 hover:text-white hover:bg-white/[0.06]"
+              class="group/chip relative cursor-pointer rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-xs text-ink-300 transition hover:border-accent/40 hover:text-white hover:bg-white/[0.06] flex items-center gap-1"
               @click="send(s)"
             >
-              {{ s }}
+              <span>{{ s }}</span>
+              <span
+                v-if="customPrompts.includes(s)"
+                class="opacity-0 group-hover/chip:opacity-100 text-rose-400 hover:text-rose-300 ml-0.5 text-[10px] font-bold"
+                title="ลบปุ่มลัดนี้"
+                @click.stop="removeCustomPrompt(s)"
+              >
+                ✕
+              </span>
+            </button>
+
+            <!-- Add custom prompt button -->
+            <button
+              type="button"
+              class="cursor-pointer rounded-full border border-dashed border-white/20 bg-white/[0.02] px-2.5 py-1 text-xs text-accent hover:border-accent hover:bg-accent/10 transition flex items-center gap-1"
+              title="เพิ่มปุ่มลัดคำถามส่วนตัวของคุณ"
+              @click="openAddPromptModal"
+            >
+              <span>+ เพิ่มปุ่มลัด</span>
             </button>
           </div>
         </div>
@@ -221,7 +306,75 @@
             </div>
             <div v-if="m.role === 'assistant'" class="chat-md" v-html="renderMarkdown(m.content)" />
             <p v-else-if="m.content" class="whitespace-pre-wrap break-words">{{ m.content }}</p>
+
+            <!-- Action Bar for Assistant Messages (Copy & Save to Scratchpad) -->
+            <div
+              v-if="m.role === 'assistant' && !m.error"
+              class="mt-2 pt-2 border-t border-white/[0.08] flex items-center justify-between gap-2 text-[11px]"
+            >
+              <div class="flex items-center gap-1.5 text-ink-500 text-[10px]">
+                <span>🤖 AI Study Assistant</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <!-- Copy message text -->
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-ink-400 hover:bg-white/[0.08] hover:text-white transition cursor-pointer"
+                  :title="copiedIndex === i ? 'คัดลอกเรียบร้อย!' : 'คัดลอกข้อความนี้'"
+                  @click="copyMessage(m.content, i)"
+                >
+                  <span class="text-xs">{{ copiedIndex === i ? '✓' : '📋' }}</span>
+                  <span class="text-[10px]">{{ copiedIndex === i ? 'คัดลอกแล้ว' : 'คัดลอก' }}</span>
+                </button>
+
+                <!-- Save to Scratchpad button -->
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 font-medium transition cursor-pointer active:scale-95"
+                  :class="savedNoteIndex === i
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm'
+                    : 'bg-white/[0.05] text-ink-300 hover:border-accent/40 hover:bg-accent/15 hover:text-white border border-white/[0.06]'"
+                  :title="savedNoteIndex === i ? 'บันทึกลง Scratchpad เรียบร้อยแล้ว!' : 'ส่งสรุปข้อความนี้ไปบันทึกใน Quick Scratchpad'"
+                  @click="saveToScratchpad(m.content, i)"
+                >
+                  <span class="text-xs">{{ savedNoteIndex === i ? '✓' : '📌' }}</span>
+                  <span class="text-[10px]">{{ savedNoteIndex === i ? 'บันทึกแล้ว' : 'ส่งลงโน้ต' }}</span>
+                </button>
+              </div>
+            </div>
           </div>
+        </div>
+
+        <!-- Quick Prompt Chips under Welcome Greeting (แสดงเมื่อมีข้อความต้อนรับข้อความแรก) -->
+        <div
+          v-if="messages.length === 1 && messages[0].role === 'assistant'"
+          class="flex flex-wrap gap-1.5 pt-1 pl-1 animate-fade-up"
+        >
+          <button
+            v-for="(s, i) in currentPrompts"
+            :key="s"
+            type="button"
+            class="group/chip cursor-pointer rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-xs text-ink-300 transition hover:border-accent/40 hover:text-white hover:bg-white/[0.08] active:scale-95 flex items-center gap-1"
+            @click="send(s)"
+          >
+            <span>{{ s }}</span>
+            <span
+              v-if="customPrompts.includes(s)"
+              class="opacity-0 group-hover/chip:opacity-100 text-rose-400 hover:text-rose-300 ml-0.5 text-[10px] font-bold"
+              title="ลบปุ่มลัดนี้"
+              @click.stop="removeCustomPrompt(s)"
+            >
+              ✕
+            </span>
+          </button>
+          <button
+            type="button"
+            class="cursor-pointer rounded-full border border-dashed border-white/20 bg-white/[0.02] px-2.5 py-1 text-xs text-accent hover:border-accent hover:bg-accent/10 transition flex items-center gap-1"
+            title="เพิ่มปุ่มลัดคำถามส่วนตัวของคุณ"
+            @click="openAddPromptModal"
+          >
+            <span>+ เพิ่มปุ่มลัด</span>
+          </button>
         </div>
 
         <!-- Typing Indicator / Loading State -->
@@ -397,12 +550,84 @@
         <img :src="previewModalImage" alt="รูปขยาย" class="max-h-[82vh] max-w-full rounded-xl object-contain" />
       </div>
     </div>
+
+    <!-- Add Custom Prompt Modal -->
+    <Teleport to="body">
+      <div
+        v-if="isAddPromptModalOpen"
+        class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fade-in"
+        @click.self="isAddPromptModalOpen = false"
+      >
+        <div class="w-full max-w-xs rounded-3xl border border-white/[0.1] bg-ink-950 p-4 shadow-2xl text-xs space-y-3 animate-scale-up">
+          <div class="flex items-center justify-between border-b border-white/[0.08] pb-2.5">
+            <span class="font-bold text-xs text-white flex items-center gap-1.5">
+              <span>✨</span> เพิ่มปุ่มลัดคำถามส่วนตัว
+            </span>
+            <button type="button" class="text-ink-400 hover:text-white cursor-pointer" @click="isAddPromptModalOpen = false">✕</button>
+          </div>
+          <div>
+            <label class="block text-ink-400 text-[10px] mb-1 font-medium">ข้อความคำถามที่ต้องการถามบ่อยๆ:</label>
+            <input
+              v-model="newPromptInput"
+              type="text"
+              placeholder="เช่น ช่วยแต่งประโยคตัวอย่าง, สรุปสูตรเคมี"
+              class="input w-full text-xs py-2 px-3"
+              autofocus
+              @keyup.enter="addCustomPrompt"
+            />
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button type="button" class="btn-ghost flex-1 py-1.5 text-xs rounded-xl cursor-pointer" @click="isAddPromptModalOpen = false">ยกเลิก</button>
+            <button type="button" class="btn btn-primary flex-1 py-1.5 text-xs rounded-xl cursor-pointer" @click="addCustomPrompt">บันทึกปุ่มลัด</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { useActiveDocument } from '~/composables/useActiveDocument'
+import { useScratchpad } from '~/composables/useScratchpad'
+
+// Composable for syncing notes with Quick Scratchpad
+const { appendToScratchpad } = useScratchpad()
+
+const copiedIndex = ref<number | null>(null)
+const savedNoteIndex = ref<number | null>(null)
+const toastMsg = ref('')
+let toastTimeout: ReturnType<typeof setTimeout> | null = null
+
+function showToast(msg: string) {
+  toastMsg.value = msg
+  if (toastTimeout) clearTimeout(toastTimeout)
+  toastTimeout = setTimeout(() => {
+    toastMsg.value = ''
+  }, 2400)
+}
+
+async function copyMessage(content: string, index: number) {
+  try {
+    await navigator.clipboard.writeText(content)
+    copiedIndex.value = index
+    showToast('คัดลอกข้อความเรียบร้อยแล้ว 📋')
+    setTimeout(() => {
+      if (copiedIndex.value === index) copiedIndex.value = null
+    }, 2000)
+  } catch (err) {
+    console.warn('Failed to copy text', err)
+  }
+}
+
+function saveToScratchpad(content: string, index: number) {
+  appendToScratchpad(content)
+  savedNoteIndex.value = index
+  showToast('บันทึกลง Quick Scratchpad เรียบร้อยแล้ว! 📝')
+  setTimeout(() => {
+    if (savedNoteIndex.value === index) savedNoteIndex.value = null
+  }, 2500)
+}
 
 interface AttachedFile {
   name: string
@@ -429,15 +654,128 @@ interface ChatMessage {
 // Global active document state from Document Reader
 const { activeDoc, isAiSyncEnabled, toggleAiSync } = useActiveDocument()
 
-// System instruction กำหนดบทบาทติวเตอร์ส่วนตัว (รอบคอบ ใจดี ละเอียด)
-const SYSTEM_INSTRUCTION =
-  'คุณคือติวเตอร์ส่วนตัวที่ใจดี อธิบายกระชับ เข้าใจง่าย ตอบเป็นภาษาไทยเป็นหลัก หากผู้ใช้ส่งรูปภาพโจทย์ เอกสาร PDF ชีทเรียน หรือไฟล์ข้อความมา ให้ช่วยอ่าน วิเคราะห์ สรุปเนื้อหา หรือเฉลยโจทย์อย่างเป็นขั้นตอน และอธิบายสูตรหรือแนวคิดสำคัญให้เข้าใจง่าย'
+interface AiPersona {
+  id: string
+  name: string
+  icon: string
+  desc: string
+  instruction: string
+}
+
+const AI_PERSONAS: AiPersona[] = [
+  {
+    id: 'academic',
+    name: 'วิชาการ',
+    icon: '👨‍🏫',
+    desc: 'อธิบายละเอียด ลึกซึ้ง มีหลักการและสูตรครบถ้วน',
+    instruction: 'คุณคือติวเตอร์วิชาการระดับอาจารย์ผู้เชี่ยวชาญ อธิบายเนื้อหาอย่างละเอียด ลึกซึ้ง มีหลักการ เหตุผล และสูตรทางคณิตศาสตร์/วิทยาศาสตร์อย่างถูกต้องสมบูรณ์ พร้อมยกตัวอย่างประกอบขั้นตอนอย่างชัดเจน ใช้ภาษาทางการสุภาพ'
+  },
+  {
+    id: 'summary',
+    name: 'สรุปไว',
+    icon: '⚡',
+    desc: 'เน้นสรุปประเด็นสำคัญ Bullet points สั้นกระชับ',
+    instruction: 'คุณคือผู้ช่วยสรุปบทเรียน ตอบเฉพาะใจความสำคัญ เน้น Bullet points สั้น กระชับ ตรงประเด็น เหมาะกับการทบทวนหน้าห้องสอบ ตัดน้ำออกให้หมด สรุปเร็วและเข้าใจทันที'
+  },
+  {
+    id: 'coach',
+    name: 'โค้ชวินัย',
+    icon: '🔥',
+    desc: 'กระตุ้นสมาธิ ผลักดันให้คิดเอง ท้าทายให้เข้าใจจริง',
+    instruction: 'คุณคือโค้ชติวเข้มสายผลักดัน (Tough Love) พูดตรง กระตือรือร้น ท้าทายให้คิดเอง คอยกระตุ้นวินัย เตือนสติให้อ่านหนังสือและทำโจทย์จนเข้าใจอย่างแท้จริง ปลุกไฟให้พร้อมสอบ'
+  }
+]
+
+interface AiModelOption {
+  id: string
+  name: string
+  icon: string
+  desc: string
+  models: string[]
+}
+
+const AI_MODELS: AiModelOption[] = [
+  {
+    id: 'flash',
+    name: 'Flash',
+    icon: '⚡',
+    desc: 'โมเดลความเร็วสูง ตอบไวทันใจ เหมาะกับสรุปย่อและติวทั่วไป',
+    models: [
+      'gemini-flash-latest',
+      'gemini-1.5-flash-latest',
+      'gemini-2.0-flash-exp',
+      'gemini-flash-lite-latest',
+      'gemini-1.5-flash-8b',
+      'gemini-pro-latest'
+    ]
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    icon: '🧠',
+    desc: 'คิดวิเคราะห์ลึก แม่นยำ เหมาะกับโจทย์ยาก/เขียนโค้ด',
+    models: [
+      'gemini-pro-latest',
+      'gemini-1.5-pro-latest',
+      'gemini-flash-latest'
+    ]
+  },
+  {
+    id: 'thinking',
+    name: 'Thinking',
+    icon: '💡',
+    desc: 'แสดงวิธีคิดแบบเป็นขั้นเป็นตอน เจาะลึกโจทย์ซับซ้อน',
+    models: [
+      'gemini-2.0-flash-thinking-exp-01-21',
+      'gemini-2.0-flash-exp',
+      'gemini-pro-latest',
+      'gemini-flash-latest'
+    ]
+  }
+]
+
+const selectedModelId = useLocalStorage<string>('noswitch:ai:model:v3', 'flash')
+const selectedModel = computed(() => AI_MODELS.find(m => m.id === selectedModelId.value) || AI_MODELS[0]!)
+
+const activePersonaId = useLocalStorage<string>('noswitch:ai:persona:v1', 'academic')
+const activePersona = computed(() => AI_PERSONAS.find(p => p.id === activePersonaId.value) || AI_PERSONAS[0]!)
+
+// Custom Quick Prompts State
+const customPrompts = useLocalStorage<string[]>('noswitch:ai:customPrompts:v1', [])
+const isAddPromptModalOpen = ref(false)
+const newPromptInput = ref('')
+
+function openAddPromptModal() {
+  newPromptInput.value = ''
+  isAddPromptModalOpen.value = true
+}
+
+function addCustomPrompt() {
+  const text = newPromptInput.value.trim()
+  if (text && !customPrompts.value.includes(text)) {
+    customPrompts.value.push(text)
+  }
+  isAddPromptModalOpen.value = false
+}
+
+function removeCustomPrompt(text: string) {
+  customPrompts.value = customPrompts.value.filter(p => p !== text)
+}
 
 // Sample prompts
 const samplePrompts = [
-  'สรุปใจความสำคัญของเรื่องนี้',
-  'อธิบายวิธีทำโจทย์ข้อนี้ให้หน่อย',
+  'ช่วยสรุปใจความสำคัญ',
+  'สรุปสาระสำคัญเป็นข้อๆ เพื่อจดโน้ต',
+  'ตั้งโจทย์ทดสอบ 1 ข้อ',
   'เทคนิคการจำสูตรคณิตศาสตร์',
+]
+
+// Default Welcome Message from AI Tutor
+const DEFAULT_AI_MESSAGES: ChatMessage[] = [
+  {
+    role: 'assistant',
+    content: 'สวัสดีครับ! 👋 ผมคือ **AI Study Assistant** ประจำ NoSwitch พร้อมช่วยติวบทเรียน สรุปเนื้อหา หรืออธิบายข้อสงสัยได้ตลอดเวลา สามารถพิมพ์ถาม หรือกดปุ่มด้านล่างเพื่อเริ่มติวได้เลยครับ!',
+  },
 ]
 
 // State จัดการ API Key
@@ -447,7 +785,13 @@ const showKeyText = ref(false)
 const showSettings = ref(false)
 
 // State แชท และ ไฟล์แนบ
-const messages = useLocalStorage<ChatMessage[]>('noswitch:chat:messages', [])
+const messages = useLocalStorage<ChatMessage[]>('noswitch:chat:messages', DEFAULT_AI_MESSAGES)
+
+onMounted(() => {
+  if (!messages.value || messages.value.length === 0) {
+    messages.value = [...DEFAULT_AI_MESSAGES]
+  }
+})
 const input = ref('')
 const loading = ref(false)
 const scrollEl = ref<HTMLElement | null>(null)
@@ -502,11 +846,11 @@ const quickPromptsForActiveDoc = computed(() => {
   ]
 })
 
-// รวม Quick Prompts ตามสถานะปัจจุบัน (ไฟล์แนบตรง > ไฟล์ซิงก์ > พรอมต์เริ่มต้น)
+// รวม Quick Prompts ตามสถานะปัจจุบัน (ไฟล์แนบตรง > ไฟล์ซิงก์ > พรอมต์เริ่มต้น + ปุ่มลัดส่วนตัว)
 const currentPrompts = computed(() => {
-  if (attachedFile.value) return quickPromptsForFile.value
-  if (isAiSyncEnabled.value && activeDoc.value?.base64) return quickPromptsForActiveDoc.value
-  return samplePrompts
+  if (attachedFile.value) return [...quickPromptsForFile.value, ...customPrompts.value]
+  if (isAiSyncEnabled.value && activeDoc.value?.base64) return [...quickPromptsForActiveDoc.value, ...customPrompts.value]
+  return [...samplePrompts, ...customPrompts.value]
 })
 
 // ซิงค์ input กับ apiKey ปัจจุบัน
@@ -782,15 +1126,10 @@ async function send(customText?: string) {
     }
     parts.push({ text: finalPrompt })
 
-    // รายชื่อโมเดลมาตรฐานที่รองรับทั้งข้อความ, รูปภาพ และ PDF (เรียงลำดับจากเร็วสุดและเสถียรสุดบน v1beta)
-    const candidateModels = [
-      'gemini-flash-latest',
-      'gemini-1.5-flash-latest',
-      'gemini-flash-lite-latest',
-      'gemini-2.0-flash-exp',
-      'gemini-1.5-flash-8b',
-      'gemini-pro-latest',
-    ]
+    // ใช้รายชื่อโมเดลตามที่ผู้ใช้เลือก (Flash / Pro / Thinking) พร้อม fallback ภายในกลุ่ม
+    const candidateModels = selectedModel.value?.models?.length
+      ? selectedModel.value.models
+      : ['gemini-flash-latest', 'gemini-1.5-flash-latest', 'gemini-pro-latest']
 
     let reply = ''
     let lastError: any = null
@@ -808,7 +1147,7 @@ async function send(customText?: string) {
           },
           body: JSON.stringify({
             systemInstruction: {
-              parts: [{ text: SYSTEM_INSTRUCTION }],
+              parts: [{ text: `${activePersona.value.instruction} ตอบเป็นภาษาไทยเป็นหลัก กระชับ ตรงประเด็น ไม่อารัมภบทยืดยาว หากมีรูปภาพโจทย์ เอกสาร PDF หรือไฟล์ข้อความ ให้ช่วยวิเคราะห์และให้คำตอบทันที` }],
             },
             contents: [
               {
@@ -816,8 +1155,8 @@ async function send(customText?: string) {
               },
             ],
             generationConfig: {
-              temperature: 0.6,
-              maxOutputTokens: 2048,
+              temperature: 0.5,
+              maxOutputTokens: 1500,
             },
           }),
         })
@@ -830,37 +1169,11 @@ async function send(customText?: string) {
         }
 
         const errMsg = data?.error?.message || ''
-        const isTemporary =
-          response.status === 404 ||
-          response.status === 429 ||
-          response.status === 503 ||
-          errMsg.includes('high demand') ||
-          errMsg.includes('overloaded') ||
-          errMsg.includes('spikes in demand') ||
-          errMsg.includes('not found')
-
-        if (isTemporary) {
-          lastError = new Error(errMsg || `Model ${modelName} temporary issue (${response.status})`)
-          continue // สลับไปลองโมเดลถัดไปในคลัสเตอร์ทันที
-        }
-
-        // หากเป็น Error ถาวร (เช่น API Key ผิด) ให้โยน Error ออกไปแสดงผลทันที
-        throw new Error(errMsg || `HTTP ${response.status}: ${response.statusText}`)
+        lastError = new Error(errMsg || `Model ${modelName} error (${response.status})`)
+        continue // ถ้าโมเดลนี้มีปัญหา ไม่ว่า 404, 429, 503 หรือใดๆ ให้ลองโมเดลตัวถัดไปในลิสต์ทันที
       } catch (err: any) {
-        if (
-          err.message &&
-          (err.message.includes('high demand') ||
-            err.message.includes('spikes in demand') ||
-            err.message.includes('not found') ||
-            err.message.includes('overloaded') ||
-            err.message.includes('404') ||
-            err.message.includes('503') ||
-            err.message.includes('429'))
-        ) {
-          lastError = err
-          continue
-        }
-        throw err
+        lastError = err
+        continue // ถ้า fetch ตัวนี้พัง ให้ลองโมเดลตัวถัดไปทันที
       }
     }
 

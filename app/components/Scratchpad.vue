@@ -187,12 +187,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useScratchpad } from '~/composables/useScratchpad'
 
 const STORAGE_TEXT_KEY = 'noswitch:scratchpad:text:v2'
 const STORAGE_CANVAS_KEY = 'noswitch:scratchpad:canvas:v2'
 const STORAGE_COLOR_KEY = 'noswitch:scratchpad:color:v2'
 const STORAGE_MODE_KEY = 'noswitch:scratchpad:mode:v2'
+
+const { scratchpadText, setScratchpadText } = useScratchpad()
 
 // Note Color Themes
 const NOTE_COLORS = [
@@ -254,9 +257,7 @@ function selectColor(colorId: string) {
 function saveTextDebounced() {
   if (saveTimeout) clearTimeout(saveTimeout)
   saveTimeout = setTimeout(() => {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(STORAGE_TEXT_KEY, textContent.value)
-    }
+    setScratchpadText(textContent.value)
   }, 400)
 }
 
@@ -466,10 +467,25 @@ onMounted(() => {
   }
 
   window.addEventListener('click', handleClickOutside)
+  window.addEventListener('noswitch:scratchpad:updated', onExternalUpdate)
 })
+
+function onExternalUpdate(e: Event) {
+  const detail = (e as CustomEvent<string>).detail
+  if (typeof detail === 'string') {
+    textContent.value = detail
+    activeMode.value = 'text'
+    nextTick(() => {
+      if (textareaRef.value) {
+        textareaRef.value.scrollTop = textareaRef.value.scrollHeight
+      }
+    })
+  }
+}
 
 onBeforeUnmount(() => {
   if (resizeObserver) resizeObserver.disconnect()
   window.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('noswitch:scratchpad:updated', onExternalUpdate)
 })
 </script>
