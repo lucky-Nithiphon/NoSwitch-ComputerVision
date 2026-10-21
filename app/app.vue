@@ -866,10 +866,10 @@ interface WidgetState {
   height: number
 }
 
-const STORAGE_KEY = 'noswitch:modular:widgets:v8'
+const STORAGE_KEY = 'noswitch:modular:widgets:v9'
 
 const presets = [
-  { id: 'standard', label: 'มาตรฐาน', icon: '⚡', desc: 'เลย์เอาต์สมดุล ครบทุกเครื่องมือ ไม่รกสายตา' },
+  { id: 'standard', label: 'มาตรฐาน', icon: '⚡', desc: 'ครบทุกเครื่องมือ แสดงทุกฟังก์ชันพร้อมใช้งาน' },
   { id: 'reading', label: 'อ่านเอกสาร/PDF', icon: '📖', desc: 'เน้นเปิดชีทเรียนคู่กับแชทถาม AI และสูตรย่อ' },
   { id: 'minimal', label: 'มินิมอล', icon: '🎧', desc: 'เฉพาะนับถอยหลังวันสอบ โน้ตย่อ และจับเวลา' },
 ]
@@ -878,17 +878,24 @@ const currentPreset = ref('standard')
 
 const PRESET_LAYOUTS: Record<string, WidgetState[]> = {
   standard: [
-    { id: 'youtube', title: 'YouTube Focus', icon: '📺', visible: true, minimized: false, order: 0, colSpan: 7, height: 440 },
-    { id: 'timer', title: 'Pomodoro Timer', icon: '⏱️', visible: true, minimized: false, order: 1, colSpan: 5, height: 440 },
-    { id: 'todo', title: 'Study Schedule', icon: '📅', visible: true, minimized: false, order: 2, colSpan: 5, height: 460 },
-    { id: 'ai', title: 'AI Study Assistant', icon: '🤖', visible: true, minimized: false, order: 3, colSpan: 7, height: 460 },
-    { id: 'guardian', title: 'Focus Guardian', icon: '🛡️', visible: false, minimized: false, order: 4, colSpan: 5, height: 440 },
-    { id: 'exam', title: 'Exam D-Day', icon: '⏳', visible: false, minimized: false, order: 5, colSpan: 4, height: 380 },
-    { id: 'scratchpad', title: 'Quick Scratchpad', icon: '📝', visible: false, minimized: false, order: 6, colSpan: 4, height: 380 },
-    { id: 'hud', title: 'Formula & Cheat Sheet', icon: '📐', visible: false, minimized: false, order: 7, colSpan: 6, height: 440 },
-    { id: 'calc', title: 'Calculator', icon: '🧮', visible: false, minimized: false, order: 8, colSpan: 3, height: 380 },
-    { id: 'doc', title: 'Document & PDF', icon: '📄', visible: false, minimized: false, order: 9, colSpan: 7, height: 440 },
-    { id: 'themes', title: 'Theme Customizer', icon: '🎨', visible: false, minimized: false, order: 10, colSpan: 4, height: 440 },
+    // Row 1: Document & PDF (7) + AI Study Assistant (5)
+    { id: 'doc', title: 'Document & PDF', icon: '📄', visible: true, minimized: false, order: 0, colSpan: 7, height: 500 },
+    { id: 'ai', title: 'AI Study Assistant', icon: '🤖', visible: true, minimized: false, order: 1, colSpan: 5, height: 500 },
+
+    // Row 2: Exam D-Day (3) + Pomodoro Timer (3) + Study Schedule (3) + Quick Scratchpad (3)
+    { id: 'exam', title: 'Exam D-Day', icon: '⏳', visible: true, minimized: false, order: 2, colSpan: 3, height: 380 },
+    { id: 'timer', title: 'Pomodoro Timer', icon: '⏱️', visible: true, minimized: false, order: 3, colSpan: 3, height: 380 },
+    { id: 'todo', title: 'Study Schedule', icon: '📅', visible: true, minimized: false, order: 4, colSpan: 3, height: 380 },
+    { id: 'scratchpad', title: 'Quick Scratchpad', icon: '📝', visible: true, minimized: false, order: 5, colSpan: 3, height: 380 },
+
+    // Row 3: YouTube Focus (7) + Focus Guardian (5)
+    { id: 'youtube', title: 'YouTube Focus', icon: '📺', visible: true, minimized: false, order: 6, colSpan: 7, height: 440 },
+    { id: 'guardian', title: 'Focus Guardian', icon: '🛡️', visible: true, minimized: false, order: 7, colSpan: 5, height: 440 },
+
+    // Row 4: Formula & Cheat Sheet (5) + Theme Customizer (4) + Calculator (3)
+    { id: 'hud', title: 'Formula & Cheat Sheet', icon: '📐', visible: true, minimized: false, order: 8, colSpan: 5, height: 420 },
+    { id: 'themes', title: 'Theme Customizer', icon: '🎨', visible: true, minimized: false, order: 9, colSpan: 4, height: 420 },
+    { id: 'calc', title: 'Calculator', icon: '🧮', visible: true, minimized: false, order: 10, colSpan: 3, height: 420 },
   ],
   reading: [
     { id: 'doc', title: 'Document & PDF Reader', icon: '📄', visible: true, minimized: false, order: 0, colSpan: 7, height: 500 },
