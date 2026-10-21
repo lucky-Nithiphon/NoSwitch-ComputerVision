@@ -31,12 +31,19 @@
     <header class="sticky top-2 z-30 mx-3 sm:mx-6 my-2 rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-ink-900/85 px-4 py-2 sm:py-2.5 shadow-2xl backdrop-blur-2xl transition-all duration-300">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <!-- Left: Logo & Title -->
-        <div class="flex items-center gap-3">
-          <div class="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-accent to-accent-2 text-sm font-bold text-ink-950 shadow-md shadow-accent/25">
-            N
+        <div class="flex items-center gap-2.5">
+          <div class="relative h-9 w-9 overflow-hidden rounded-xl bg-white/[0.04] p-0.5 ring-1 ring-white/10 shadow-md transition-transform hover:scale-105">
+            <img
+              src="/Logo.png"
+              alt="NoSwitch Logo"
+              class="h-full w-full object-contain"
+            />
           </div>
           <div>
-            <h1 class="text-sm font-bold leading-tight text-white tracking-wide">NoSwitch v.0.1.2</h1>
+            <h1 class="text-sm font-bold leading-tight text-white tracking-wide flex items-center gap-1.5">
+              <span>NoSwitch</span>
+              <span class="rounded-md bg-accent/20 px-1.5 py-0.2 text-[10px] font-mono text-accent ring-1 ring-accent/30">v.0.1.2</span>
+            </h1>
             <p class="text-[11px] text-ink-500">Study Dashboard</p>
           </div>
         </div>
