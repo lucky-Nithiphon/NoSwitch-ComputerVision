@@ -154,8 +154,11 @@ const DEFAULT_THEME: ThemeSettings = {
   cardOpacity: 85
 }
 
+// Global singleton reactive theme state shared across app.vue, ThemeCustomizer, etc.
+const globalTheme = useLocalStorage<ThemeSettings>('noswitch:theme:v2', DEFAULT_THEME)
+
 export function useTheme() {
-  const theme = useLocalStorage<ThemeSettings>('noswitch:theme:v2', DEFAULT_THEME)
+  const theme = globalTheme
 
   // Ensure cardOpacity has a valid fallback if loaded from existing localStorage
   if (theme.value.cardOpacity === undefined || theme.value.cardOpacity === null) {
